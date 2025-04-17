@@ -20,9 +20,9 @@ cd domino-cli
 chmod +x run.sh
 ```
 
-3. Download `domino.pth` file by filling out the following form to `domino-cli` directory.
+3. Download `DOMINO.pth` file by filling out the following form to `domino-cli` directory.
 ```bash
-    https://github.com/lab-smile/DOMINO?tab=readme-ov-file#pre-trained-models
+https://github.com/lab-smile/DOMINO?tab=readme-ov-file#pre-trained-models
 ```
 
 ## Usage
