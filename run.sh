@@ -25,11 +25,11 @@ else
     source venv/bin/activate
 fi
 
-# Make sure grace.py is executable
-chmod +x grace.py
+# Make sure domino.py is executable
+chmod +x domino.py
 
-# Run the grace.py script with the input file
-python ./grace.py "$1"
+# Run the domino.py script with the input file
+python ./domino.py "$1"
 
 # Deactivate virtual environment
 deactivate 
