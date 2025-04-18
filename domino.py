@@ -10,7 +10,7 @@ import nibabel as nib
 from monai.networks.nets import UNETR
 from monai.inferers import sliding_window_inference
 from monai.data import MetaTensor, DataLoader, Dataset, load_decathlon_datalist
-from monai.transforms import Compose, Spacingd, Orientationd, ClipIntensityPercentilesd, ScaleIntensityRanged, EnsureTyped, LoadImaged, EnsureChannelFirstd, CropForegroundd, LambdaD, Resized, MapTransform
+from monai.transforms import Compose, Spacingd, Orientationd, EnsureTyped, LoadImaged, EnsureChannelFirstd, CropForegroundd, MapTransform
 
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -54,7 +54,7 @@ def generate_datalist(folder_path):
     with open("datalist.json", "w") as f:
         json.dump(datalist, f, indent=4)
 
-def load_model(model_path, spatial_size, num_classes, device, dataparallel=False, num_gpu=1):
+def load_model(model_path, spatial_size, num_classes, device):
     """
         Load and configure the model for inference.
         @param model_path: Path to the model weights file (str)
@@ -110,11 +110,9 @@ class ConditionalNormalizationd(MapTransform):
 
             # MetaTensor check
             if isinstance(image, MetaTensor):
-                image_id = image.meta.get("filename_or_obj", "unknown")
                 original_meta = image.meta
                 image_np = image.as_tensor().cpu().numpy()  # Convert to NumPy for percentile ops
             else:
-                image_id = "unknown"
                 original_meta = None
                 image_np = image  # Assume NumPy
 
@@ -140,7 +138,7 @@ class ConditionalNormalizationd(MapTransform):
         return d
 
 
-def preprocess_datalists(a_min, a_max, target_shape=(176,256,256), complexity_threshold=10000):
+def preprocess_datalists(a_min, a_max, complexity_threshold=10000):
     return Compose([
         LoadImaged(keys=["image"]),
         ConditionalNormalizationd(keys=["image"], a_min=a_min, a_max=a_max, complexity_threshold=complexity_threshold),
@@ -198,7 +196,6 @@ def preprocess_input(input_path, device, a_min_value, a_max_value, complexity_th
             ),
             Orientationd(keys=["image"], axcodes="RAS"),
             CropForegroundd(keys=["image"], source_key="image"),
-            Resized(keys=["image"], spatial_size=(256, 256, 256), mode="trilinear"),
         ]
     )
 
@@ -283,7 +280,7 @@ def domino_predict_single_file(input_path, output_dir="output", model_path="./DO
         send_progress(f"Using device: {device}", 5)
 
     # Load model
-    model = load_model(model_path, spatial_size, num_classes, device, dataparallel, num_gpu)
+    model = load_model(model_path, spatial_size, num_classes, device)
 
     # Preprocess input
     image_tensor, input_img = preprocess_input(input_path, device, a_min_value, a_max_value)
@@ -335,7 +332,7 @@ def domino_predict_multiple_files(input_path, output_dir="output", model_path=".
     dataset = Dataset(data=datalist, transform=transforms)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=1)
     # Load model
-    model = load_model(model_path, spatial_size, num_classes, device, dataparallel, num_gpu)
+    model = load_model(model_path, spatial_size, num_classes, device)
 
     # Perform inference
     send_progress("Starting sliding window inference", 50)
