@@ -161,7 +161,7 @@ def preprocess_input(input_path, device, a_min_value, a_max_value, complexity_th
         data = np.clip(data, a_min, a_max)
         return (data - a_min) / (a_max - a_min + 1e-8)
 
-    def normalize_percentile(data, lower=5, upper=95):
+    def normalize_percentile(data, lower=15, upper=85):
         pmin, pmax = np.percentile(data, [lower, upper])
         data = np.clip(data, pmin, pmax)
         return (data - pmin) / (pmax - pmin + 1e-8)
