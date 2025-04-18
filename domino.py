@@ -198,6 +198,7 @@ def preprocess_input(input_path, device, a_min_value, a_max_value, complexity_th
             ),
             Orientationd(keys=["image"], axcodes="RAS"),
             CropForegroundd(keys=["image"], source_key="image"),
+            Resized(keys=["image"], spatial_size=(256, 256, 256), mode="trilinear"),
         ]
     )
 
@@ -254,7 +255,7 @@ def save_multiple_predictions(predictions, batch_meta, output_dir):
             nib.save(nib.Nifti1Image(pred_np, affine, header), os.path.join(output_dir, f"{filename}_pred_DOMINO.nii"))
 
 
-def domino_predict_single_file(input_path, output_dir="output", model_path="models/DOMINO.pth",
+def domino_predict_single_file(input_path, output_dir="output", model_path="./DOMINO.pth",
                        spatial_size=(256, 256, 256), num_classes=12, dataparallel=False, num_gpu=1,
                        a_min_value=0, a_max_value=255):
     """
@@ -304,7 +305,7 @@ def domino_predict_single_file(input_path, output_dir="output", model_path="mode
     
     send_progress("Processing completed successfully!", 99)
 
-def domino_predict_multiple_files(input_path, output_dir="output", model_path="models/DOMINO.pth",
+def domino_predict_multiple_files(input_path, output_dir="output", model_path="./DOMINO.pth",
                        spatial_size=(256, 256, 256), num_classes=12, dataparallel=False, num_gpu=1,
                        a_min_value=0, a_max_value=255):
     """
