@@ -319,7 +319,7 @@ def domino_predict_multiple_files(input_path, output_dir="output", model_path=".
         @param a_max_value: Maximum intensity value for scaling (int or float)
     """
     os.makedirs(output_dir, exist_ok=True)
-    batch_size = 10
+    batch_size = 5
     # Determine device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if torch.backends.mps.is_available() and not torch.cuda.is_available():
