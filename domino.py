@@ -10,7 +10,7 @@ import nibabel as nib
 from monai.networks.nets import UNETR
 from monai.inferers import sliding_window_inference
 from monai.data import MetaTensor, DataLoader, Dataset, load_decathlon_datalist
-from monai.transforms import Compose, Spacingd, Orientationd, EnsureTyped, LoadImaged, EnsureChannelFirstd, CropForegroundd, MapTransform
+from monai.transforms import Compose, Spacingd, Orientationd, EnsureTyped, LoadImaged, EnsureChannelFirstd, CropForegroundd, MapTransform, Resized
 
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -145,6 +145,7 @@ def preprocess_datalists(a_min, a_max, complexity_threshold=10000):
         Spacingd(keys=["image"], pixdim=(1.0, 1.0, 1.0), mode="trilinear"),
         Orientationd(keys=["image"], axcodes="RAS"),
         CropForegroundd(keys=["image"], source_key="image"),
+        Resized(keys=["image"], spatial_size=(256, 256, 256), mode="trilinear"),
         EnsureChannelFirstd(keys=["image"]),
         EnsureTyped(keys=["image"], track_meta=True)
     ])
