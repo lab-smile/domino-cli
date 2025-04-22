@@ -331,7 +331,7 @@ def domino_predict_multiple_files(input_path, output_dir="output", model_path=".
     datalist = load_decathlon_datalist(input_path, True, "testing")
     transforms = preprocess_datalists(a_min_value, a_max_value)
     dataset = Dataset(data=datalist, transform=transforms)
-    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=1)
+    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=0)
     # Load model
     model = load_model(model_path, spatial_size, num_classes, device)
 
