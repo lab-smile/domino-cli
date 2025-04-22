@@ -145,7 +145,6 @@ def preprocess_datalists(a_min, a_max, complexity_threshold=10000):
         Spacingd(keys=["image"], pixdim=(1.0, 1.0, 1.0), mode="trilinear"),
         Orientationd(keys=["image"], axcodes="RAS"),
         CropForegroundd(keys=["image"], source_key="image"),
-        Resized(keys=["image"], spatial_size=(256, 256, 256), mode="trilinear"),
         EnsureChannelFirstd(keys=["image"]),
         EnsureTyped(keys=["image"], track_meta=True)
     ])
