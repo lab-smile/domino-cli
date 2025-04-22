@@ -176,6 +176,7 @@ cython_debug/
 #model files
 *.pth
 *.nii.gz
+*.nii
 
 AIMPilot
 outputs
