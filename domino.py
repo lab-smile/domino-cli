@@ -326,6 +326,7 @@ def domino_predict_multiple_files(input_path, output_dir="output", model_path=".
     batch_size = 1
     # Determine device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"[DEBUG] Memory usage (MB): {process.memory_info().rss / 1024 ** 2:.2f}")
     if torch.backends.mps.is_available() and not torch.cuda.is_available():
         device = torch.device("cpu")
         send_progress("Using MPS backend (CPU due to ConvTranspose3d support limitations)", 5)
@@ -333,18 +334,23 @@ def domino_predict_multiple_files(input_path, output_dir="output", model_path=".
         send_progress(f"Using device: {device}", 5)
 
     datalist = load_decathlon_datalist(input_path, True, "testing")
+    print(f"[DEBUG] Memory usage (MB): {process.memory_info().rss / 1024 ** 2:.2f}")
     transforms = preprocess_datalists(a_min_value, a_max_value)
+
     dataset = Dataset(data=datalist, transform=transforms)
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=0)
+    print(f"[DEBUG] Memory usage (MB): {process.memory_info().rss / 1024 ** 2:.2f}")
     # Load model
-    model = load_model(model_path, spatial_size, num_classes, device)
 
+    model = load_model(model_path, spatial_size, num_classes, device)
+    print(f"[DEBUG] Memory usage (MB): {process.memory_info().rss / 1024 ** 2:.2f}")
     # Perform inference
     send_progress("Starting sliding window inference", 50)
     for batch in dataloader:
         images = batch["image"].to(device)
         meta = batch["image"].meta
         start_time = time.time()
+        print(f"[DEBUG] Memory usage (MB): {process.memory_info().rss / 1024 ** 2:.2f}")
         with torch.no_grad():
             preds = sliding_window_inference(
                 images, spatial_size, sw_batch_size=batch_size, predictor=model, overlap=0.8
