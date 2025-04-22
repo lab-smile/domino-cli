@@ -318,6 +318,10 @@ def domino_predict_multiple_files(input_path, output_dir="output", model_path=".
         @param a_min_value: Minimum intensity value for scaling (int or float)
         @param a_max_value: Maximum intensity value for scaling (int or float)
     """
+    import psutil, os
+    process = psutil.Process(os.getpid())
+    print(f"[DEBUG] Memory usage (MB): {process.memory_info().rss / 1024 ** 2:.2f}")
+
     os.makedirs(output_dir, exist_ok=True)
     batch_size = 1
     # Determine device
