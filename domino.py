@@ -245,7 +245,7 @@ def save_multiple_predictions(predictions, batch_meta, output_dir):
         header = nib.load(batch_meta["filename_or_obj"][i]).header
 
         # Save as .nii.gz
-        send_progress(f"Processing outputs for input file - {i}", ".")
+        send_progress(f"Processing outputs for - {filename}", ".")
         if isniigz:
             nib.save(nib.Nifti1Image(pred_np, affine, header), os.path.join(output_dir, f"{filename}_pred_DOMINO.nii.gz"))
         else:
