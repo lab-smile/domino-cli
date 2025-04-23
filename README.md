@@ -1,6 +1,6 @@
 # DOMINO CLI
 
-Domino CLI is a tool for processing NIfTI (.nii or .nii.gz) files using [domino model](https://github.com/lab-smile/domino), batch processing is also supported but make sure that all images are of same spatial size.
+Domino CLI is a tool for processing NIfTI (.nii or .nii.gz) files using [domino model](https://github.com/lab-smile/domino), batch processing is also supported.
 
 ## Prerequisites
 
@@ -58,7 +58,6 @@ The script will show an error message if:
 - The input file doesn't exist
 - The input file is not a .nii.gz or .nii file
 - Input is neither a file nor a folder with NIfTI images
-- `Trying to resize storage that is not resizable` following error will be the result of mismatch in spatial size of batch input files.
 
 ## Dependencies
 
