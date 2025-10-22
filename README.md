@@ -7,6 +7,15 @@ Domino CLI is a tool for processing NIfTI (.nii or .nii.gz) files using [domino 
 - Python 3.1x
 - Ability to create virtual environments (`python3-venv`)
 
+### Option 1: Local Installation
+- Python 3.1x
+- Ability to create virtual environments (`python3-venv`)
+
+### Option 2: Docker Installation
+- Docker
+- Docker Compose (optional, for easier usage)
+
+
 ## Installation
 
 1. Clone this repository:
@@ -25,7 +34,11 @@ chmod +x run.sh
 https://github.com/lab-smile/DOMINO?tab=readme-ov-file#pre-trained-models
 ```
 
+4. Change the defaults within `domino.py` file i.e. num_gpu or batch_size etc.
+
 ## Usage
+
+### Using Local Installation
 
 The tool can be run using the provided shell script:
 
@@ -38,6 +51,34 @@ For example:
 ./run.sh sample_image.nii.gz
 ./run.sh ./input_folder
 ```
+
+### Using Docker
+
+You can run the tool using Docker in two ways:
+
+#### Using Docker directly:
+
+1. Build the Docker image:
+```bash
+docker build -t domino-cli .
+```
+
+2. Run the container:
+```bash
+docker run -v $(pwd):/app domino-cli <input_nifti_file.nii.gz>
+```
+
+For example:
+```bash
+docker run -v $(pwd):/app domino-cli sample_image.nii.gz
+```
+
+#### Using Docker compose:
+To run the repo with the following command, you need to change the command argument in the `docker-compose.yml` file. (For example: ['python', 'domino.py', 'input.nii'])
+```bash
+docker compose up --build
+```
+
 
 ### What the script does:
 
