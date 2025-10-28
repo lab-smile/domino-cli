@@ -281,7 +281,7 @@ def save_multiple_predictions(predictions, batch_meta, output_dir):
 
 def domino_predict(input_path, output_dir="output", model_path="./DOMINO.pth",
                        spatial_size=(256, 256, 256), num_classes=12, num_gpu=1,
-                       a_min_value=0, a_max_value=255):
+                       a_min_value=0, a_max_value=255, complexity_threshold=10000):
     """
         Predict segmentation for NIfTI images with progress updates via SSE.
         @param input_path: Path to the input NIfTI image file or folder (str)
@@ -307,7 +307,7 @@ def domino_predict(input_path, output_dir="output", model_path="./DOMINO.pth",
         batch_size = 1
         datalist_path = "datalist.json"
         datalist = load_decathlon_datalist(datalist_path, True, "testing")
-        transforms = preprocess_datalists(a_min_value, a_max_value)
+        transforms = preprocess_datalists(a_min_value, a_max_value, complexity_threshold)
         dataset = Dataset(data=datalist, transform=transforms)
         dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=1)
 
@@ -336,7 +336,7 @@ def domino_predict(input_path, output_dir="output", model_path="./DOMINO.pth",
         base_filename = os.path.basename(input_path).split(".nii")[0]
 
         # Preprocess input
-        image_tensor, input_img = preprocess_input(input_path, device, a_min_value, a_max_value)
+        image_tensor, input_img = preprocess_input(input_path, device, a_min_value, a_max_value, complexity_threshold)
 
         # Perform inference
         send_progress("Starting sliding window inference", 50)
