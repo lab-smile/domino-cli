@@ -375,7 +375,7 @@ if __name__ == "__main__":
     input_path = args.input_path
     output_dir = args.output_dir
     model_path = args.model_path
-    spatial_size = tuple(args.spatial_size, args.spatial_size, args.spatial_size)
+    spatial_size = (args.spatial_size, args.spatial_size, args.spatial_size)
 
     
     send_progress("Starting prediction", 1)
