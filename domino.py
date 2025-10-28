@@ -108,6 +108,10 @@ def load_model(model_path, spatial_size, num_classes, device, gpus, device_ids=N
 
     model = model.to(device)
 
+    state_dict = torch.load(model_path, map_location=device, weights_only=True)
+    state_dict_1 = {k.replace("module.", ""): v for k, v in state_dict.items()}
+    model.load_state_dict(state_dict_1, strict=False)
+
     # Wrap with DataParallel if we have >1 GPUs
     if gpus > 1 and torch.cuda.is_available() and device_ids:
         model = torch.nn.DataParallel(model, device_ids=device_ids)
@@ -115,9 +119,7 @@ def load_model(model_path, spatial_size, num_classes, device, gpus, device_ids=N
     
     send_progress(f"Loading model weights from {model_path}", 20)
     
-    state_dict = torch.load(model_path, map_location=device, weights_only=True)
-    state_dict = {k.replace("module.", ""): v for k, v in state_dict.items()}
-    model.load_state_dict(state_dict, strict=False)
+    
     model.eval()
     
     send_progress("Model loaded successfully.", 40)
