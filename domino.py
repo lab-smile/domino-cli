@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+import argparse
 import json
 import time
 import torch
@@ -34,6 +35,7 @@ def send_progress(message, progress):
         Helper function to print SSE progress updates
         @param message: Message about current stage of model prediction (str)
         @param progress: Progress percentage (int)
+        Returns: SSE formatted string
     """
     # data = json.dumps({"message": message, "progress": progress})
     # return f"data: {data}\n\n"
@@ -41,6 +43,30 @@ def send_progress(message, progress):
         logger.info(f"{message}... {progress}%")
     else:
         logger.info(f"{message}...")
+
+def gpu_setup(num_gpu_requested: int):
+    """
+        Decide device and number of GPUs to actually use.
+        @param num_gpu_requested: Number of GPUs requested by user (int)
+        Returns: (device, ngpu_used, device_ids)
+    """
+    if torch.cuda.is_available() and num_gpu_requested > 0:
+        total = torch.cuda.device_count()
+        use = max(1, min(num_gpu_requested, total))
+        device_ids = list(range(use))
+        device = torch.device("cuda:0")
+        if use > 1:
+            send_progress(f"Using DataParallel across {use} GPUs: {device_ids}", 5)
+        else:
+            send_progress("Using single CUDA GPU", 5)
+        return device, use, device_ids
+    # MPS note in your code: keep behavior, but DP not supported there
+    if torch.backends.mps.is_available():
+        send_progress("Using MPS backend (CPU for ConvTranspose3d limitations)", 5)
+        return torch.device("cpu"), 0, []
+    send_progress("CUDA not available — falling back to CPU", 5)
+    return torch.device("cpu"), 0, []
+
 
 def generate_datalist(folder_path):
     nii_files = [
@@ -54,15 +80,14 @@ def generate_datalist(folder_path):
     with open("datalist.json", "w") as f:
         json.dump(datalist, f, indent=4)
 
-def load_model(model_path, spatial_size, num_classes, device):
+def load_model(model_path, spatial_size, num_classes, device, gpus, device_ids=None):
     """
         Load and configure the model for inference.
         @param model_path: Path to the model weights file (str)
         @param spatial_size: Size of the input images (tuple)
         @param num_classes: Number of output classes (int)
         @param device: Device to run the model on (str or torch.device)
-        @param dataparallel: Whether to use DataParallel (bool)
-        @param num_gpu: Number of GPUs to use if dataparallel is True (int)
+        @param num_gpu: Number of GPUs to use (int)
         @return: Configured model for inference (torch.nn.Module)
     """
     send_progress("Configuring model", 10)
@@ -81,11 +106,13 @@ def load_model(model_path, spatial_size, num_classes, device):
         proj_type="perceptron",
     )
 
-    # if dataparallel:
-    #     yield send_progress("Initializing DataParallel with multiple GPUs", 15)
-    #     model = torch.nn.DataParallel(model, device_ids=list(range(num_gpu)))
-
     model = model.to(device)
+
+    # Wrap with DataParallel if we have >1 GPUs
+    if gpus > 1 and torch.cuda.is_available() and device_ids:
+        model = torch.nn.DataParallel(model, device_ids=device_ids)
+        send_progress(f"Model wrapped with DataParallel on GPUs {device_ids}", 18)
+    
     send_progress(f"Loading model weights from {model_path}", 20)
     
     state_dict = torch.load(model_path, map_location=device, weights_only=True)
@@ -252,148 +279,116 @@ def save_multiple_predictions(predictions, batch_meta, output_dir):
             nib.save(nib.Nifti1Image(pred_np, affine, header), os.path.join(output_dir, f"{filename}_pred_DOMINO.nii"))
 
 
-def domino_predict_single_file(input_path, output_dir="output", model_path="./DOMINO.pth",
-                       spatial_size=(256, 256, 256), num_classes=12, dataparallel=False, num_gpu=1,
+def domino_predict(input_path, output_dir="output", model_path="./DOMINO.pth",
+                       spatial_size=(256, 256, 256), num_classes=12, num_gpu=1,
                        a_min_value=0, a_max_value=255):
     """
-        Predict segmentation for a single NIfTI image with progress updates via SSE.
-        @param input_path: Path to the input NIfTI image file (str)
+        Predict segmentation for NIfTI images with progress updates via SSE.
+        @param input_path: Path to the input NIfTI image file or folder (str)
         @param output_dir: Directory to save the output files (str)
         @param model_path: Path to the model weights file (str)
         @param spatial_size: Size of the input images (tuple)
         @param num_classes: Number of output classes (int)
-        @param dataparallel: Whether to use DataParallel (bool)
-        @param num_gpu: Number of GPUs to use if dataparallel is True (int)
+        @param num_gpu: Number of GPUs to use (int)
         @param a_min_value: Minimum intensity value for scaling (int or float)
         @param a_max_value: Maximum intensity value for scaling (int or float)
     """
     os.makedirs(output_dir, exist_ok=True)
-    isniigz = os.path.basename(input_path).endswith(".nii.gz")
-    base_filename = os.path.basename(input_path).split(".nii")[0]
-
+    
     # Determine device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if torch.backends.mps.is_available() and not torch.cuda.is_available():
-        device = torch.device("cpu")
-        send_progress("Using MPS backend (CPU due to ConvTranspose3d support limitations)", 5)
-    else:
-        send_progress(f"Using device: {device}", 5)
+    device, use, device_ids = gpu_setup(num_gpu_requested=num_gpu)
 
     # Load model
-    model = load_model(model_path, spatial_size, num_classes, device)
+    model = load_model(model_path, spatial_size, num_classes, device, use, device_ids)
 
-    # Preprocess input
-    image_tensor, input_img = preprocess_input(input_path, device, a_min_value, a_max_value)
+    if os.path.isdir(input_path):
+        send_progress("Generating datalist", 8)
+        generate_datalist(input_path)
+        batch_size = 1
+        datalist_path = "datalist.json"
+        datalist = load_decathlon_datalist(datalist_path, True, "testing")
+        transforms = preprocess_datalists(a_min_value, a_max_value)
+        dataset = Dataset(data=datalist, transform=transforms)
+        dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=1)
 
-    # Perform inference
-    send_progress("Starting sliding window inference", 50)
-    start_time = time.time()
-    with torch.no_grad():
-        predictions = sliding_window_inference(
-            image_tensor, spatial_size, sw_batch_size=4, predictor=model, overlap=0.8
-        )
-    
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    send_progress(f"Inference completed successfully in {elapsed_time:.2f} seconds.", 75)
+        # Perform inference
+        send_progress("Starting sliding window inference", 50)
 
-    # Save predictions
-    save_predictions(predictions, input_img, output_dir, base_filename, isniigz)
-    
-    send_progress("Processing completed successfully!", 99)
+        sw_bs = max(1, 4 * (use if use > 0 else 1))
+        for batch in dataloader:
+            images = batch["image"].to(device)
+            meta = batch["image"].meta
+            start_time = time.time()
+            
+            with torch.no_grad():
+                preds = sliding_window_inference(
+                    images, spatial_size, sw_batch_size=sw_bs, predictor=model, overlap=0.8
+                )
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            send_progress(f"Batch inference completed {elapsed_time:.2f} seconds",".")
+            save_multiple_predictions(preds, meta, output_dir)
+        
+        send_progress("Processing completed successfully!", 99)
 
-def domino_predict_multiple_files(input_path, output_dir="output", model_path="./DOMINO.pth",
-                       spatial_size=(256, 256, 256), num_classes=12, dataparallel=False, num_gpu=1,
-                       a_min_value=0, a_max_value=255):
-    """
-        Predict segmentation for a single NIfTI image with progress updates via SSE.
-        @param input_path: Path to the input NIfTI image file (str)
-        @param output_dir: Directory to save the output files (str)
-        @param model_path: Path to the model weights file (str)
-        @param spatial_size: Size of the input images (tuple)
-        @param num_classes: Number of output classes (int)
-        @param dataparallel: Whether to use DataParallel (bool)
-        @param num_gpu: Number of GPUs to use if dataparallel is True (int)
-        @param a_min_value: Minimum intensity value for scaling (int or float)
-        @param a_max_value: Maximum intensity value for scaling (int or float)
-    """
-    os.makedirs(output_dir, exist_ok=True)
-    batch_size = 1
-    # Determine device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    if torch.backends.mps.is_available() and not torch.cuda.is_available():
-        device = torch.device("cpu")
-        send_progress("Using MPS backend (CPU due to ConvTranspose3d support limitations)", 5)
     else:
-        send_progress(f"Using device: {device}", 5)
+        isniigz = os.path.basename(input_path).endswith(".nii.gz")
+        base_filename = os.path.basename(input_path).split(".nii")[0]
 
-    datalist = load_decathlon_datalist(input_path, True, "testing")
+        # Preprocess input
+        image_tensor, input_img = preprocess_input(input_path, device, a_min_value, a_max_value)
 
-    transforms = preprocess_datalists(a_min_value, a_max_value)
-
-    dataset = Dataset(data=datalist, transform=transforms)
-    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=1)
-    
-    # Load model
-    model = load_model(model_path, spatial_size, num_classes, device)
-
-    # Perform inference
-    send_progress("Starting sliding window inference", 50)
-    for batch in dataloader:
-        images = batch["image"].to(device)
-        meta = batch["image"].meta
+        # Perform inference
+        send_progress("Starting sliding window inference", 50)
         start_time = time.time()
+        sw_bs = max(1, 4 * (use if use > 0 else 1))
         with torch.no_grad():
-            preds = sliding_window_inference(
-                images, spatial_size, sw_batch_size=4, predictor=model, overlap=0.8
+            predictions = sliding_window_inference(
+                image_tensor, spatial_size, sw_batch_size=sw_bs, predictor=model, overlap=0.8
             )
+        
         end_time = time.time()
         elapsed_time = end_time - start_time
-        send_progress(f"Batch inference completed {elapsed_time:.2f} seconds",".")
-        save_multiple_predictions(preds, meta, output_dir)
+        send_progress(f"Inference completed successfully in {elapsed_time:.2f} seconds.", 75)
+
+        # Save predictions
+        save_predictions(predictions, input_img, output_dir, base_filename, isniigz)
+        
+        send_progress("Processing completed successfully!", 99)
     
-    send_progress("Processing completed successfully!", 99)
 
 # Example usage
 if __name__ == "__main__":
-    if(len(sys.argv) < 2):
-        print("Path for input file or a folder expected!")
-    elif(len(sys.argv) > 3):
-        print("Too many arguments...!")
+    parser = argparse.ArgumentParser(description="DOMINO CLI - run segmentation on NIfTI file(s) or a folder")
+    parser.add_argument("--input_path", help="Path to input NIfTI file or a folder")
+    parser.add_argument("--output_dir", default="outputs", help="Directory to save outputs")
+    parser.add_argument("--model_path", default="DOMINO.pth", help="Path to model weights file")
+    parser.add_argument("--spatial_size", type=int, default=64, help="one patch dimension")
+    parser.add_argument("--num_classes", type=int, default=12, help="Number of output classes")
+    parser.add_argument("--num_gpu", type=int, default=1, help="Number of GPUs to use")
+    parser.add_argument("--a_min_value", type=float, default=0, help="Minimum intensity value for fixed normalization")
+    parser.add_argument("--a_max_value", type=float, default=255, help="Maximum intensity value for fixed normalization")
+    parser.add_argument("--complexity_threshold", type=float, default=10000, help="Mean threshold to choose percentile normalization")
 
-    input_path = sys.argv[1]
-    output_dir = "outputs"
-    model_path = "DOMINO.pth"
-    datalist_path = "datalist.json"
+    args = parser.parse_args()
 
-    if os.path.isdir(input_path):
-        send_progress("Generating datalist", 2)
-        generate_datalist(input_path)
+    input_path = args.input_path
+    output_dir = args.output_dir
+    model_path = args.model_path
+    spatial_size = tuple(args.spatial_size, args.spatial_size, args.spatial_size)
 
-        domino_predict_multiple_files(
-            input_path=datalist_path,
-            output_dir=output_dir,
-            model_path=model_path,
-            spatial_size=(256, 256, 256),
-            num_classes=12,
-            dataparallel=False,
-            num_gpu=1,
-            a_min_value=0,
-            a_max_value=255,    
-        )
     
-    else:
-        domino_predict_single_file(
-            input_path=input_path,
-            output_dir=output_dir,
-            model_path=model_path,
-            spatial_size=(256, 256, 256),
-            num_classes=12,
-            dataparallel=False,
-            num_gpu=1,
-            a_min_value=0,
-            a_max_value=255,
-        )
+    send_progress("Starting prediction", 1)
+    domino_predict(
+        input_path=input_path,
+        output_dir=output_dir,
+        model_path=model_path,
+        spatial_size=spatial_size,
+        num_classes=args.num_classes,
+        num_gpu=args.num_gpu,
+        a_min_value=args.a_min_value,
+        a_max_value=args.a_max_value,
+        complexity_threshold=args.complexity_threshold,
+    )
 
     send_progress("Output files generated!", 100)

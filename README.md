@@ -27,8 +27,6 @@ chmod +x run.sh
 https://github.com/lab-smile/DOMINO?tab=readme-ov-file#pre-trained-models
 ```
 
-4. Change the defaults within `domino.py` file i.e. num_gpu or batch_size etc.
-
 ## Usage
 
 ### Using Local Installation
@@ -36,12 +34,27 @@ https://github.com/lab-smile/DOMINO?tab=readme-ov-file#pre-trained-models
 The tool can be run using the provided shell script:
 
 ```bash
-./run.sh <input_nifti_file.nii.gz> or <folder_path_to_nifti_images>
+./run.sh <input_nifti_file.nii.gz> or <folder_path_to_nifti_images> [Other Options eg. --num_gpu 5 --spatial_size 256]
 ```
+
+All available options are listed below:
+
+| Argument                 | Type    | Default        | Description                                                                        |
+| ------------------------ | ------- | -------------- | ---------------------------------------------------------------------------------- |
+| `--input_path`           | *str*   | —              | Path to input NIfTI file or a folder (required as the first argument)              |
+| `--output_dir`           | *str*   | `"outputs"`    | Directory to save outputs                                                          |
+| `--model_path`           | *str*   | `"DOMINO.pth"` | Path to model weights file                                                         |
+| `--spatial_size`         | *int*   | `64`           | One patch dimension                                                                |
+| `--num_classes`          | *int*   | `12`           | Number of output classes                                                           |
+| `--num_gpu`              | *int*   | `1`            | Number of GPUs to use                                                              |
+| `--a_min_value`          | *float* | `0`            | Minimum intensity value for fixed normalization                                    |
+| `--a_max_value`          | *float* | `255`          | Maximum intensity value for fixed normalization                                    |
+| `--complexity_threshold` | *float* | `10000`        | Mean threshold to choose percentile normalization                                  |
+
 
 For example:
 ```bash
-./run.sh sample_image.nii.gz
+./run.sh sample_image.nii.gz --num_gpu 3 --spatial_size 128 --model_path /path/to/DOMINO_UPGRADE.pth
 ./run.sh ./input_folder
 ```
 
@@ -58,12 +71,12 @@ docker build -t domino-cli .
 
 2. Run the container:
 ```bash
-docker run -v $(pwd):/app domino-cli <input_nifti_file.nii.gz>
+docker run -v $(pwd):/app domino-cli <input_nifti_file.nii.gz> [Other options]
 ```
 
 For example:
 ```bash
-docker run -v $(pwd):/app domino-cli sample_image.nii.gz
+docker run -v $(pwd):/app domino-cli sample_image.nii.gz  --complexity_threshold 8000
 ```
 
 #### Using Docker compose:
@@ -74,7 +87,7 @@ docker compose up --build
 
 
 #### Using our published docker hub image
-You can use the published docker hub image `nikmk26/domino-cli:latest`
+You can use the published docker hub image `nikmk26/domino-cli:latest` but make sure you have the repository cloned and is the current working directory.
 
 ```bash
 docker run -v $(pwd):/app nikmk26/domino-cli:latest <input_nifti_file.nii.gz>
@@ -93,13 +106,6 @@ docker run -v $(pwd):/app nikmk26/domino-cli:latest <input_nifti_file.nii.gz>
 The processed files will be saved in the `outputs` directory with the following naming convention:
 - `<input_filename>_pred_domino.nii(.gz)`: NIfTI format output
 
-## Error Cases
-
-The script will show an error message if:
-- No input file is provided
-- The input file doesn't exist
-- The input file is not a .nii.gz or .nii file
-- Input is neither a file nor a folder with NIfTI images
 
 ## Dependencies
 

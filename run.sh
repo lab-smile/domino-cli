@@ -2,7 +2,7 @@
 
 # Check if input file is provided
 if [ $# -eq 0 ]; then
-    echo "Usage: ./run.sh <input_nifti_file.nii.gz> or <folder_path_with_nifti_files>"
+    echo "Usage: ./run.sh <input_nifti_file.nii.gz> or <folder_path_with_nifti_files> [additional_options]"
     exit 1
 fi
 
@@ -29,7 +29,7 @@ fi
 chmod +x domino.py
 
 # Run the domino.py script with the input file
-python ./domino.py "$1"
+python ./domino.py $*
 
 # Deactivate virtual environment
 deactivate 

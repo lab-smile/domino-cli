@@ -1,7 +1,18 @@
 services:
   domino-cli:
     build: .
+    image: domino-cli:latest
     volumes:
       - ./:/app
       - ./outputs:/app/outputs
-    command: ["--help"]  # Default command to show usage information
+    shm_size: '2gb'
+    platform: linux/amd64
+    gpus: all
+    #(Alternative for Swarm-style syntax shown below)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: ["gpu"]
+    runtime: nvidia
+ 
