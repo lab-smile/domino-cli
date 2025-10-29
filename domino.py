@@ -362,7 +362,18 @@ def domino_predict(input_path, output_dir="output", model_path="./DOMINO.pth",
 # Example usage
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="DOMINO CLI - run segmentation on NIfTI file(s) or a folder")
-    parser.add_argument("--input_path", help="Path to input NIfTI file or a folder")
+    # Positional argument for input_path
+    parser.add_argument(
+        "input_path",
+        nargs="?",
+        help="Path to input NIfTI file or a folder"
+    )
+
+    # Optional flag (for backward compatibility)
+    parser.add_argument(
+        "--input_path",
+        help="Path to input NIfTI file or a folder (alternative to positional argument)"
+    )
     parser.add_argument("--output_dir", default="outputs", help="Directory to save outputs")
     parser.add_argument("--model_path", default="DOMINO.pth", help="Path to model weights file")
     parser.add_argument("--spatial_size", type=int, default=64, help="one patch dimension")
@@ -374,7 +385,25 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    input_path = args.input_path
+    input_path = args.input_path or args.__dict__.get("input_path")
+    
+    if not input_path:
+        parser.error("The following argument is required: input_path (positional or --input_path)")
+
+    if not os.path.exists(input_path):
+        parser.error(f"The specified path does not exist: {input_path}")
+
+    if os.path.isdir(input_path):
+        # Folder input — OK
+        pass
+    elif os.path.isfile(input_path):
+        # Must be a NIfTI file
+        if not (input_path.endswith(".nii") or input_path.endswith(".nii.gz")):
+            parser.error(f"Invalid file type: {input_path}. Must be a .nii or .nii.gz file.")
+    else:
+        parser.error(f"The specified path is neither a file nor a directory: {input_path}")
+
+    
     output_dir = args.output_dir
     model_path = args.model_path
     spatial_size = (args.spatial_size, args.spatial_size, args.spatial_size)
