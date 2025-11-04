@@ -14,7 +14,7 @@ log() {
 
 # Check if input file is provided
 if [ $# -lt 1 ]; then
-    timestamp=$(date +"%Y-%m-%d %H:%M:%S,%3N")
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S,$(date +%N | cut -c1-3)")
     echo "$timestamp | WARN | Usage: ./run.sh <input_nifti_file.nii.gz> or <folder_path_with_nifti_files> [additional_options]"
     echo "$timestamp | WARN | Atleast one argument (input file or folder) is required."
     exit 1
@@ -24,10 +24,10 @@ fi
 if [ ! -d "venv" ]; then
     log "Creating new Python virtual environment..."
     log "Using venv folder for the virtual environment."
-    python3 -m venv venv 
+    python3 -m venv venv # For Conda environments use conda create -y -n domino_env python=3.10
     
     log -n "Installing dependencies... "
-    source venv/bin/activate
+    source venv/bin/activate # Change to `conda activate domino_env` for Conda environments
     START_TIME=$(date +%s)
     (pip install -r requirements.txt --quiet 2>/dev/null) &
     PID=$!
@@ -44,7 +44,7 @@ if [ ! -d "venv" ]; then
     printf "\b \b"
     if [ $STATUS -ne 0 ]; then
         echo ""
-        timestamp=$(date +"%Y-%m-%d %H:%M:%S,%3N")
+        timestamp=$(date +"%Y-%m-%d %H:%M:%S,$(date +%N | cut -c1-3)")
         echo "$timestamp | ERROR | Error installing dependencies. Exiting."
         deactivate
         exit 1
@@ -66,4 +66,4 @@ chmod +x domino.py
 python ./domino.py $*
 
 # Deactivate virtual environment
-deactivate 
+deactivate # Deactivate Conda environment using `conda deactivate` for Conda environments

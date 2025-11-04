@@ -1,10 +1,10 @@
 # DOMINO CLI
 
-Domino CLI is a tool for processing NIfTI (.nii or .nii.gz) files using [domino model](https://github.com/lab-smile/domino), batch processing is also supported.
+Domino CLI is a tool for processing NIfTI (.nii or .nii.gz) files using [domino model](https://github.com/lab-smile/domino), batch processing is also supported. You can check out the full details of how this tool works here: [DOMINO-CLI Preview](https://youtu.be/mKeXWM--xyU?si=qF515j6gEzFtrNhX). Check out the full playlist of these tools here: [DOMINO Playlist](https://youtube.com/playlist?list=PLqPrlYT4iwKz3cIxoZbAREwZJeOb8vU0G&si=q4dsc8M7lapy4RU3)
 
 ## Prerequisites
 
-- Python 3.1x
+- Python 3.xx >= 3.9
 - Ability to create virtual environments (`python3-venv`)
 - Docker (Optional)
 
@@ -113,8 +113,5 @@ All required Python packages are listed in `requirements.txt` and will be automa
 
 ## Notes
 
-- The script automatically handles the creation and cleanup of the Python virtual environment
-- Each run creates a fresh virtual environment to ensure consistency
-- GPU support is available if CUDA is properly configured on your system
-- Change `python` command in `run.sh` if command installed on your machine is `python3.x`
-- If you are running on hipergator make sure you have >=python3.10 loaded, you can load it using `module load python/3.10`
+- The script automatically handles the creation of the Python virtual environment
+- If you are running on HPCs like hipergator make sure you have >=python3.9 loaded, you can load it using `module load python/3.10` (example)
