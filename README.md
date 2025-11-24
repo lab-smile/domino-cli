@@ -1,6 +1,6 @@
 # DOMINO CLI
 
-Domino CLI is a tool for processing NIfTI (.nii or .nii.gz) files using [domino model](https://github.com/lab-smile/domino), batch processing is also supported. You can check out the full details of how this tool works here: [DOMINO-CLI Preview](https://youtu.be/mKeXWM--xyU?si=qF515j6gEzFtrNhX). Check out the full playlist of these tools here: [DOMINO Playlist](https://youtube.com/playlist?list=PLqPrlYT4iwKz3cIxoZbAREwZJeOb8vU0G&si=q4dsc8M7lapy4RU3)
+Domino CLI is a tool for processing NIfTI (.nii or .nii.gz) files using [domino model](https://github.com/lab-smile/domino), batch processing is also supported. You can check out the full details of how this tool works here: [Part 1](https://youtu.be/mKeXWM--xyU?si=qF515j6gEzFtrNhX) and [Part 2](https://youtu.be/7mawJzH-Ov0?si=nZOMhyur0Oy3_kAI). Check out the full playlist of these tools here: [DOMINO Playlist](https://youtube.com/playlist?list=PLqPrlYT4iwKz3cIxoZbAREwZJeOb8vU0G&si=q4dsc8M7lapy4RU3)
 
 ## Prerequisites
 
@@ -44,7 +44,7 @@ All available options are listed below:
 | `--input_path`           | *str*   | —              | Path to input NIfTI file or a folder (required as the first argument)              |
 | `--output_dir`           | *str*   | `"outputs"`    | Directory to save outputs                                                          |
 | `--model_path`           | *str*   | `"DOMINO.pth"` | Path to model weights file                                                         |
-| `--spatial_size`         | *int*   | `64`           | One patch dimension                                                                |
+| `--spatial_size`         | *int*   | `256`          | One patch dimension, (Domino only supports 256 for now)                            |
 | `--num_classes`          | *int*   | `12`           | Number of output classes                                                           |
 | `--num_gpu`              | *int*   | `1`            | Number of GPUs to use                                                              |
 | `--a_min_value`          | *float* | `0`            | Minimum intensity value for fixed normalization                                    |
@@ -87,7 +87,7 @@ docker compose up --build
 
 
 #### Using our published docker hub image
-You can use the published docker hub image `nikmk26/domino-cli:latest` but make sure you have the repository cloned and is the current working directory.
+Instead of building a new docker image, you can use the published docker hub image `nikmk26/domino-cli:latest` but make sure you have the repository cloned and is the current working directory.
 
 ```bash
 docker run -v $(pwd):/app nikmk26/domino-cli:latest <input_nifti_file.nii.gz>
