@@ -376,7 +376,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--output_dir", default="outputs", help="Directory to save outputs")
     parser.add_argument("--model_path", default="DOMINO.pth", help="Path to model weights file")
-    parser.add_argument("--spatial_size", type=int, default=64, help="one patch dimension")
+    parser.add_argument("--spatial_size", type=int, default=256, help="one patch dimension")
     parser.add_argument("--num_classes", type=int, default=12, help="Number of output classes")
     parser.add_argument("--num_gpu", type=int, default=1, help="Number of GPUs to use")
     parser.add_argument("--a_min_value", type=float, default=0, help="Minimum intensity value for fixed normalization")
