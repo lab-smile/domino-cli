@@ -1,6 +1,6 @@
 # DOMINO CLI
 
-Domino CLI is a tool for processing NIfTI (.nii or .nii.gz) files using [domino model](https://github.com/lab-smile/domino), batch processing is also supported. You can check out the full details of how this tool works here: [Part 1](https://youtu.be/mKeXWM--xyU?si=qF515j6gEzFtrNhX) and [Part 2](https://youtu.be/7mawJzH-Ov0?si=nZOMhyur0Oy3_kAI). Check out the full playlist of these tools here: [DOMINO Playlist](https://youtube.com/playlist?list=PLqPrlYT4iwKz3cIxoZbAREwZJeOb8vU0G&si=q4dsc8M7lapy4RU3)
+Domino CLI is a tool for processing NIfTI (.nii or .nii.gz) files using [DOMINO](https://github.com/lab-smile/domino) or [DOMINO++](https://github.com/lab-smile/DOMINOPlusPlus), batch processing is also supported. You can check out the full details of how this tool works here: [Part 1](https://youtu.be/mKeXWM--xyU?si=qF515j6gEzFtrNhX) and [Part 2](https://youtu.be/7mawJzH-Ov0?si=nZOMhyur0Oy3_kAI). Check out the full playlist of these tools here: [DOMINO Playlist](https://youtube.com/playlist?list=PLqPrlYT4iwKz3cIxoZbAREwZJeOb8vU0G&si=q4dsc8M7lapy4RU3)
 
 ## Prerequisites
 
@@ -22,9 +22,14 @@ cd domino-cli
 chmod +x run.sh
 ```
 
-3. Download `DOMINO.pth` file by filling out the following form to `domino-cli` directory.
+3. Download `DOMINO.pth` or `DOMINOPlusPlus.pth` file:
 ```bash
+DOMINO:
 https://github.com/lab-smile/DOMINO?tab=readme-ov-file#pre-trained-models
+
+OR 
+DOMINO++:
+https://github.com/lab-smile/DOMINOPlusPlus/tree/main?tab=readme-ov-file#pre-trained-models
 ```
 
 ## Usage
@@ -44,7 +49,7 @@ All available options are listed below:
 | `--input_path`           | *str*   | —              | Path to input NIfTI file or a folder (required as the first argument)              |
 | `--output_dir`           | *str*   | `"outputs"`    | Directory to save outputs                                                          |
 | `--model_path`           | *str*   | `"DOMINO.pth"` | Path to model weights file                                                         |
-| `--spatial_size`         | *int*   | `256`          | One patch dimension, (Domino only supports 256 for now)                            |
+| `--spatial_size`         | *int*   | `256`          | One patch dimension                                                                |
 | `--num_classes`          | *int*   | `12`           | Number of output classes                                                           |
 | `--num_gpu`              | *int*   | `1`            | Number of GPUs to use                                                              |
 | `--a_min_value`          | *float* | `0`            | Minimum intensity value for fixed normalization                                    |
@@ -57,6 +62,10 @@ For example:
 ./run.sh sample_image.nii.gz --num_gpu 3 --spatial_size 128 --model_path /path/to/DOMINO_UPGRADE.pth
 ./run.sh ./input_folder
 ```
+
+#### Using DOMINO and DOMINO++
+
+You can easily switch between DOMINO and DOMINO++ by using the `model_path` option. Currently, the official pretrained DOMINO model supports only a spatial size of 256, whereas DOMINO++ supports only a spatial size of 64.
 
 ### Using Docker
 
